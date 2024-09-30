@@ -71,7 +71,7 @@ export class AuthService {
       throw new UnauthorizedException('Credentials are not valid');
     }
     return {
-      ...user,
+      user: user,
       token: this.getJwtToken({ id: user.id }),
     };
   }
