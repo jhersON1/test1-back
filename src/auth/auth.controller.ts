@@ -59,6 +59,13 @@ export class AuthController {
     return this.authService.findAll();
   }
 
+  @Get('my-diagrams')
+  getUserDiagrams(@Request() req) {
+    console.log('User from request:', req.user);
+    return this.authService.getUserDiagrams(req.user.id);
+  }
+
+
   @Auth()
   @Get('check-token')
   checkToken(@Request() req: Request) {
@@ -73,4 +80,6 @@ export class AuthController {
   findById(@Param('id', ParseUUIDPipe) id: string) {
     return this.authService.findOne(id);
   }
+
+
 }

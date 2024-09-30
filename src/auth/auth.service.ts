@@ -13,6 +13,7 @@ import { CreateUserDto, LoginUserDto } from './dto/';
 import { JwtPayload } from "./interfaces";
 import { JwtService } from '@nestjs/jwt';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { Diagram } from "../diagram/entities/diagram.entity";
 
 @Injectable()
 export class AuthService {
@@ -137,4 +138,14 @@ export class AuthService {
 
     throw new InternalServerErrorException('Check server logs');
   }
+
+
+  async getUserDiagrams(userId: string): Promise<Diagram[]> {
+    const user = await this.userRepository.findOne({
+      where: { id: userId },
+      relations: ['diagrams'],
+    });
+    return user ? user.diagrams : [];
+  }
+
 }

@@ -2,9 +2,10 @@ import {
   BeforeInsert,
   BeforeUpdate,
   Column,
-  Entity,
-  PrimaryGeneratedColumn,
-} from 'typeorm';
+  Entity, OneToMany,
+  PrimaryGeneratedColumn
+} from "typeorm";
+import { Diagram } from "../../diagram/entities/diagram.entity";
 
 @Entity('users')
 export class User {
@@ -40,6 +41,9 @@ export class User {
 
   @Column('text', { nullable: true })
   imageProfile: string;
+
+  @OneToMany(() => Diagram, diagram => diagram.owner)
+  diagrams: Diagram[];
 
   @BeforeInsert()
   checkFieldsBeforeInsert() {
