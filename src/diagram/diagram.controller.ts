@@ -6,7 +6,7 @@ import { Auth, GetUser } from "../auth/decorators";
 import { User } from "../auth/entities/user.entity";
 
 @Controller('diagrams')
-
+@Auth()
 export class DiagramController {
   constructor(private readonly diagramService: DiagramService) {}
 
@@ -20,6 +20,13 @@ export class DiagramController {
   @Get()
   findAll() {
     return this.diagramService.findAll();
+  }
+
+
+  @Get('allByUser')
+  findAllByUser(@Request() req: Request) {
+    const user = req['user'] as User;
+    return this.diagramService.findAllByUser(user);
   }
 
   @Get(':id')

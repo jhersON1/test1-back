@@ -27,6 +27,16 @@ export class DiagramService {
     return this.diagramRepository.find();
   }
 
+  async findAllByUser(user: User): Promise<Diagram[]> {
+    return this.diagramRepository
+      .createQueryBuilder('diagram')
+      .leftJoinAndSelect('diagram.owner', 'owner')
+      .where('owner.id = :userId', { userId: user.id })  // Comparación por ID de owner
+      .orderBy('diagram.updatedAt', 'DESC')  // Ordenar por la fecha de actualización
+      .getMany();
+  }
+
+
   async findOne(id: string): Promise<Diagram> {
     const diagram = await this.diagramRepository.findOne({ where: { id } });
     if (!diagram) {
