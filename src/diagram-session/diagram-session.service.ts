@@ -35,6 +35,17 @@ export class DiagramSessionService {
     return session;
   }
 
+  async findBySession(sessionId: string): Promise<DiagramSession> {
+    const session = await this.diagramSessionRepository.findOne({
+      where: { id: sessionId },
+      relations: ['diagram', 'participants']
+    });
+    if (!session) {
+      throw new NotFoundException(`Diagram session with code "${sessionId}" not found`);
+    }
+    return session;
+  }
+
   async joinSession(code: string, user: User): Promise<DiagramSession> {
     const session = await this.findByCode(code);
     if (!session.participants.some(participant => participant.id === user.id)) {

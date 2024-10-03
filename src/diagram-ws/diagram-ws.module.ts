@@ -9,6 +9,8 @@ import { DiagramSession } from "../diagram-session/entities/diagram-session.enti
 import { Diagram } from "../diagram/entities/diagram.entity";
 import { ConfigModule, ConfigService } from "@nestjs/config";
 import { DiagramService } from "../diagram/diagram.service";
+import { AuthService } from "../auth/auth.service";
+import { DiagramSessionService } from "../diagram-session/diagram-session.service";
 
 @Module({
   imports: [
@@ -23,7 +25,7 @@ import { DiagramService } from "../diagram/diagram.service";
       inject: [ConfigService],
     }),
   ],
-  providers: [DiagramWsGateway, DiagramWsService, DiagramService],
+  providers: [DiagramWsGateway, DiagramWsService, DiagramService, AuthService, DiagramSessionService],
   exports: [DiagramWsService],
 })
 export class DiagramWsModule {}

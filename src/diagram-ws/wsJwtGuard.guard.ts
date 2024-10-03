@@ -9,13 +9,13 @@ export class WsJwtGuard implements CanActivate {
 
   canActivate(context: ExecutionContext): boolean {
     const client: Socket = context.switchToWs().getClient();
-    console.log('WsJwtGuard - Client handshake:', client.handshake);
+
 
     let token: string | undefined;
 
     // Buscar el token en client.handshake.auth.token
     if (client.handshake.auth && client.handshake.auth.token) {
-      console.log('Token found in handshake.auth.token');
+
       token = client.handshake.auth.token.split(' ')[1]; // Remover 'Bearer '
     }
 
@@ -26,7 +26,6 @@ export class WsJwtGuard implements CanActivate {
 
     try {
       const payload = this.jwtService.verify(token);
-      console.log('Token verified successfully:', payload);
       client['user'] = payload;
       return true;
     } catch (err) {

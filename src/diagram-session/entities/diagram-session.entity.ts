@@ -10,6 +10,9 @@ export class DiagramSession {
   @Column({ unique: true })
   code: string;
 
+  @Column({nullable: true})
+  hostId: string;
+
   @ManyToOne(() => Diagram, diagram => diagram.sessions)
   diagram: Diagram;
 
