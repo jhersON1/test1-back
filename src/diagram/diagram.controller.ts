@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Request, Query, UseGuards } from "@nestjs/common";
+import { Controller, Get, Post, Body, Patch, Param, Delete } from "@nestjs/common";
 import { DiagramService } from './diagram.service';
 import { CreateDiagramDto } from './dto/create-diagram.dto';
 import { UpdateDiagramDto } from './dto/update-diagram.dto';
@@ -10,11 +10,9 @@ import { User } from "../auth/entities/user.entity";
 export class DiagramController {
   constructor(private readonly diagramService: DiagramService) {}
 
-  @Auth()
   @Post()
-  create(@Body() createDiagramDto: CreateDiagramDto, @Request() req: Request) {
-    const user = req['user'] as User;
-    return this.diagramService.create(createDiagramDto, user);
+  create(@Body() createMermaidDiagramDto: CreateDiagramDto, @GetUser() user: User) {
+    return this.diagramService.create(createMermaidDiagramDto, user);
   }
 
   @Get()
@@ -22,10 +20,8 @@ export class DiagramController {
     return this.diagramService.findAll();
   }
 
-
   @Get('allByUser')
-  findAllByUser(@Request() req: Request) {
-    const user = req['user'] as User;
+  findAllByUser(@GetUser() user: User) {
     return this.diagramService.findAllByUser(user);
   }
 

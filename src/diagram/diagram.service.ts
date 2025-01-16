@@ -15,12 +15,12 @@ export class DiagramService {
     private diagramRepository: Repository<Diagram>,
   ) {}
 
-  async create(createDiagramDto: CreateDiagramDto, user: User): Promise<Diagram> {
-    const diagram = this.diagramRepository.create({
-      ...createDiagramDto,
+  async create(createMermaidDiagramDto: CreateDiagramDto, user: User): Promise<Diagram> {
+    const mermaidDiagram = this.diagramRepository.create({
+      ...createMermaidDiagramDto,
       owner: user,
     });
-    return this.diagramRepository.save(diagram);
+    return this.diagramRepository.save(mermaidDiagram);
   }
 
   async findAll(): Promise<Diagram[]> {
@@ -29,32 +29,31 @@ export class DiagramService {
 
   async findAllByUser(user: User): Promise<Diagram[]> {
     return this.diagramRepository
-      .createQueryBuilder('diagram')
-      .leftJoinAndSelect('diagram.owner', 'owner')
-      .where('owner.id = :userId', { userId: user.id })  // Comparación por ID de owner
-      .orderBy('diagram.updatedAt', 'DESC')  // Ordenar por la fecha de actualización
+      .createQueryBuilder('mermaidDiagram')
+      .leftJoinAndSelect('mermaidDiagram.owner', 'owner')
+      .where('owner.id = :userId', { userId: user.id })
+      .orderBy('mermaidDiagram.updatedAt', 'DESC')
       .getMany();
   }
 
-
   async findOne(id: string): Promise<Diagram> {
-    const diagram = await this.diagramRepository.findOne({ where: { id } });
-    if (!diagram) {
-      throw new NotFoundException(`Diagram with ID "${id}" not found`);
+    const mermaidDiagram = await this.diagramRepository.findOne({ where: { id } });
+    if (!mermaidDiagram) {
+      throw new NotFoundException(`Mermaid diagram with ID "${id}" not found`);
     }
-    return diagram;
+    return mermaidDiagram;
   }
 
-  async update(id: string, updateDiagramDto: UpdateDiagramDto): Promise<Diagram> {
-    const diagram = await this.findOne(id);
-    Object.assign(diagram, updateDiagramDto);
-    return this.diagramRepository.save(diagram);
+  async update(id: string, updateMermaidDiagramDto: UpdateDiagramDto): Promise<Diagram> {
+    const mermaidDiagram = await this.findOne(id);
+    Object.assign(mermaidDiagram, updateMermaidDiagramDto);
+    return this.diagramRepository.save(mermaidDiagram);
   }
 
   async remove(id: string): Promise<void> {
     const result = await this.diagramRepository.delete(id);
     if (result.affected === 0) {
-      throw new NotFoundException(`Diagram with ID "${id}" not found`);
+      throw new NotFoundException(`Mermaid diagram with ID "${id}" not found`);
     }
   }
 }

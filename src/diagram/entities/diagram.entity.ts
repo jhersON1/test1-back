@@ -1,6 +1,5 @@
 import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, OneToMany, CreateDateColumn, UpdateDateColumn } from 'typeorm';
 import { User } from "../../auth/entities/user.entity";
-import { DiagramSession } from "../../diagram-session/entities/diagram-session.entity";
 
 @Entity()
 export class Diagram {
@@ -10,14 +9,11 @@ export class Diagram {
   @Column()
   title: string;
 
-  @Column('jsonb')
-  content: any;
+  @Column('text')
+  content: string;
 
   @ManyToOne(() => User, user => user.diagrams)
   owner: User;
-
-  @OneToMany(() => DiagramSession, session => session.diagram, { cascade: true })
-  sessions: DiagramSession[];
 
   @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   createdAt: Date;

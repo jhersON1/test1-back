@@ -56,6 +56,10 @@ export class AuthService {
     });
   }
 
+  async getUsuariobyEmail(email: string) {
+    return await this.userRepository.findOneBy({ email });
+  }
+
   async login(loginUserDto: LoginUserDto) {
     const { password, email } = loginUserDto;
 
