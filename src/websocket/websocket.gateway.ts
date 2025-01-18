@@ -251,37 +251,42 @@ export class WebsocketGateway implements OnGatewayConnection, OnGatewayDisconnec
       diagramData: any;
     },
   ) {
-    this.logger.debug('Received diagram changes');
-
+    this.logger.debug(`Processing diagram changes from: ${data.userEmail}`);
+  
     if (!data?.sessionId || !data?.userEmail) {
       return { status: 'error', message: 'Invalid data format' };
     }
-
+  
     const session = this.sessions.get(data.sessionId);
     if (!session || !session.allowedUsers.has(data.userEmail)) {
       return { status: 'error', message: 'Not authorized' };
     }
-
+  
     const userPermissions = session.userPermissions.get(data.userEmail);
     if (!userPermissions?.canEdit) {
       return { status: 'error', message: 'No edit permission' };
     }
-
+  
+    // Actualizar el estado del diagrama
     if (data.diagramData) {
       session.currentDiagramData = data.diagramData;
     }
-
+  
     const change = {
       delta: data.delta,
       diagramData: session.currentDiagramData,
       userEmail: data.userEmail,
       timestamp: Date.now(),
     };
-
-    session.buffer.push(change);
-    client.to(data.sessionId).emit('diagramChanges', change);
-
-    return { status: 'success', version: session.buffer.length };
+  
+    // Emitir a TODOS los clientes en la sala, incluyendo el emisor
+    this.server.to(data.sessionId).emit('diagramChanges', change);
+    
+    // Agregar logs para debug
+    this.logger.debug(`Emitting changes to session ${data.sessionId}`);
+    this.logger.debug(`Change data: ${JSON.stringify(change)}`);
+  
+    return { status: 'success' };
   }
 
   @SubscribeMessage('updatePermissions')
