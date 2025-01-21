@@ -14,8 +14,7 @@ import { v4 as uuidv4 } from 'uuid';
 interface UserPermissions {
   canEdit: boolean;
   canInvite: boolean;
-  canChangePermissions: boolean;
-  canRemoveUsers: boolean;
+  canManagePermissions: boolean;
 }
 
 interface SessionData {
@@ -84,8 +83,7 @@ export class WebsocketGateway implements OnGatewayConnection, OnGatewayDisconnec
       userPermissions: new Map([[data.creatorEmail, {
         canEdit: true,
         canInvite: true,
-        canChangePermissions: true,
-        canRemoveUsers: true
+        canManagePermissions: true
       }]]),
       buffer: [],
       currentDiagramData: data.diagramData
@@ -109,72 +107,42 @@ export class WebsocketGateway implements OnGatewayConnection, OnGatewayDisconnec
   @SubscribeMessage('addAllowedUsers')
   handleAddAllowedUsers(
     @ConnectedSocket() client: Socket,
-    @MessageBody() data: any,
+    @MessageBody() data: {
+      sessionId: string;
+      creatorEmail: string;
+      usersToAdd: string[];
+      initialPermissions?: UserPermissions;
+    },
   ) {
-    this.logger.debug('=== Adding Allowed Users ===');
-    this.logger.debug('Request data:', JSON.stringify(data, null, 2));
-    this.logger.debug('Client ID:', client.id);
+    this.logger.debug('Adding Allowed Users:', data);
 
-    // Validar el formato de los datos
-    if (!data?.sessionId || !data?.creatorEmail) {
-      this.logger.error('Missing required fields');
-      this.logger.debug('sessionId:', data?.sessionId);
-      this.logger.debug('creatorEmail:', data?.creatorEmail);
-      return { status: 'error', message: 'Missing required fields' };
-    }
-
-    // Validar que usersToAdd sea un array
-    if (!data.usersToAdd || !Array.isArray(data.usersToAdd)) {
-      this.logger.error('Invalid usersToAdd format');
-      this.logger.debug('usersToAdd:', data.usersToAdd);
-      return { status: 'error', message: 'usersToAdd must be an array' };
+    if (!data?.sessionId || !data?.creatorEmail || !Array.isArray(data.usersToAdd)) {
+      return { status: 'error', message: 'Invalid request data' };
     }
 
     const session = this.sessions.get(data.sessionId);
-    if (!session) {
-      this.logger.error('Session not found');
-      this.logger.debug('Available sessions:', Array.from(this.sessions.keys()));
-      return { status: 'error', message: 'Session not found' };
+    if (!session || session.creatorEmail !== data.creatorEmail) {
+      return { status: 'error', message: 'Not authorized' };
     }
 
-    if (session.creatorEmail !== data.creatorEmail) {
-      this.logger.error('Unauthorized creator');
-      this.logger.debug('Session creator:', session.creatorEmail);
-      this.logger.debug('Request creator:', data.creatorEmail);
-      return { status: 'error', message: 'Not authorized to add users' };
-    }
+    const defaultPermissions: UserPermissions = {
+      canEdit: true,
+      canInvite: false,
+      canManagePermissions: false
+    };
 
-    try {
-      this.logger.debug('Processing users to add...');
-      data.usersToAdd.forEach((email: string) => {
-        if (typeof email === 'string') {
-          this.logger.debug('Adding user:', email);
-          session.allowedUsers.add(email);
-          if (!session.userPermissions.has(email)) {
-            session.userPermissions.set(email, {
-              canEdit: true,
-              canInvite: false,
-              canChangePermissions: false,
-              canRemoveUsers: false
-            });
-          }
-        } else {
-          this.logger.warn('Invalid email format:', email);
-        }
-      });
+    const permissions = data.initialPermissions || defaultPermissions;
 
-      const currentAllowedUsers = Array.from(session.allowedUsers);
-      this.logger.debug('Current allowed users:', currentAllowedUsers);
-      
-      return {
-        status: 'success',
-        message: 'Users added successfully',
-        allowedUsers: currentAllowedUsers,
-      };
-    } catch (error) {
-      this.logger.error('Error processing users:', error);
-      return { status: 'error', message: error.message };
-    }
+    data.usersToAdd.forEach(email => {
+      session.allowedUsers.add(email);
+      session.userPermissions.set(email, permissions);
+    });
+
+    return {
+      status: 'success',
+      message: 'Users added successfully',
+      allowedUsers: Array.from(session.allowedUsers)
+    };
   }
 
   @SubscribeMessage('joinSession')
@@ -184,39 +152,19 @@ export class WebsocketGateway implements OnGatewayConnection, OnGatewayDisconnec
   ) {
     this.logger.debug('Join session request:', data);
 
-    if (!data?.sessionId || !data?.userEmail) {
-      return { status: 'error', message: 'Invalid request data' };
-    }
-
     const session = this.sessions.get(data.sessionId);
-    if (!session) {
-      return { status: 'error', message: 'Session not found' };
-    }
-
-    if (!session.allowedUsers.has(data.userEmail)) {
-      return { status: 'error', message: 'User not authorized' };
+    if (!session || !session.allowedUsers.has(data.userEmail)) {
+      return { status: 'error', message: 'Not authorized' };
     }
 
     client.join(data.sessionId);
     session.activeUsers.add(data.userEmail);
 
-    let userPermissions = session.userPermissions.get(data.userEmail) || {
+    const userPermissions = session.userPermissions.get(data.userEmail) || {
       canEdit: true,
       canInvite: false,
-      canChangePermissions: false,
-      canRemoveUsers: false
+      canManagePermissions: false
     };
-
-    if (data.userEmail === session.creatorEmail) {
-      userPermissions = {
-        canEdit: true,
-        canInvite: true,
-        canChangePermissions: true,
-        canRemoveUsers: true
-      };
-    }
-
-    session.userPermissions.set(data.userEmail, userPermissions);
 
     this.server.to(data.sessionId).emit('collaborationUpdate', {
       type: 'USER_JOINED',
@@ -237,6 +185,7 @@ export class WebsocketGateway implements OnGatewayConnection, OnGatewayDisconnec
         diagramData: session.currentDiagramData,
         changes: session.buffer,
       },
+      permissions: userPermissions,
       isCreator: data.userEmail === session.creatorEmail
     };
   }
@@ -301,17 +250,15 @@ export class WebsocketGateway implements OnGatewayConnection, OnGatewayDisconnec
   ) {
     this.logger.debug('Updating permissions:', data);
 
-    if (!data?.sessionId || !data?.targetUserEmail || !data?.requestedByEmail) {
-      return { status: 'error', message: 'Invalid data format' };
-    }
-
     const session = this.sessions.get(data.sessionId);
-    if (!session) {
-      return { status: 'error', message: 'Session not found' };
+    if (!session || session.creatorEmail !== data.requestedByEmail) {
+      return { status: 'error', message: 'Not authorized' };
     }
 
-    if (session.creatorEmail !== data.requestedByEmail) {
-      return { status: 'error', message: 'Not authorized to update permissions' };
+    // Validar que los permisos tengan la estructura correcta
+    const requiredPermissions = ['canEdit', 'canInvite', 'canManagePermissions'];
+    if (!requiredPermissions.every(perm => data.newPermissions.hasOwnProperty(perm))) {
+      return { status: 'error', message: 'Invalid permissions format' };
     }
 
     session.userPermissions.set(data.targetUserEmail, data.newPermissions);
