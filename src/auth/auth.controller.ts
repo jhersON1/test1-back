@@ -6,7 +6,11 @@ import {
   Param,
   ParseUUIDPipe,
   Patch,
-  Request
+  Request,
+  UseGuards,
+  HttpException,
+  HttpStatus,
+  Query
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { CreateUserDto, LoginUserDto } from './dto/';
@@ -14,6 +18,7 @@ import { Auth, GetUser } from './decorators';
 import { ValidRoles } from './interfaces';
 import { User } from './entities/user.entity';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { AuthGuard } from '@nestjs/passport';
 
 @Controller('auth')
 export class AuthController {
@@ -54,10 +59,48 @@ export class AuthController {
     };
   }
 
+  @Get('check-email')
+  @Auth()
+  async checkUserEmail(@Query('email') email: string) {
+    try {
+      console.log('[UsuarioController] Checking email:', email);
+      const user = await this.authService.getUsuariobyEmail(email);
+
+      if (!user) {
+        console.log('[UsuarioController] User not found for email:', email);
+        throw new HttpException('Usuario no encontrado', HttpStatus.NOT_FOUND);
+      }
+
+      console.log('[UsuarioController] User found:', user.email);
+      return {
+        exists: true,
+        email: user.email,
+        nombre: user.name,
+        apellido: user.lastname,
+      };
+    } catch (e) {
+      console.error('[UsuarioController] Error checking email:', e);
+      if (e instanceof HttpException) {
+        throw e;
+      }
+      throw new HttpException(
+        'Error al verificar usuario',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+  
   @Get()
   findAll() {
     return this.authService.findAll();
   }
+
+  @Get('my-diagrams')
+  getUserDiagrams(@Request() req) {
+    console.log('User from request:', req.user);
+    return this.authService.getUserDiagrams(req.user.id);
+  }
+
 
   @Auth()
   @Get('check-token')
@@ -73,4 +116,6 @@ export class AuthController {
   findById(@Param('id', ParseUUIDPipe) id: string) {
     return this.authService.findOne(id);
   }
+
+
 }

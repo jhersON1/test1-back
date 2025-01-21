@@ -4,7 +4,10 @@ import { AppService } from './app.service';
 import { ConfigModule, ConfigService } from "@nestjs/config";
 import { TypeOrmModule } from "@nestjs/typeorm";
 import { AuthModule } from './auth/auth.module';
-import { DiagramWsModule } from './diagram-ws/diagram-ws.module';
+import { DiagramModule } from './diagram/diagram.module';
+import { Diagram } from "./diagram/entities/diagram.entity";
+import { User } from "./auth/entities/user.entity";
+import { WebsocketModule } from './websocket/websocket.module';
 
 @Module({
   imports: [
@@ -22,6 +25,8 @@ import { DiagramWsModule } from './diagram-ws/diagram-ws.module';
           database: configService.get<string>('DB_NAME'),
           username: configService.get<string>('DB_USERNAME'),
           password: configService.get<string>('DB_PASSWORD'),
+          //entities: ['/**/*.entity{.ts,.js}'],
+          entities: [User, Diagram],
           autoLoadEntities: true,
           synchronize: true,
         }
@@ -29,7 +34,8 @@ import { DiagramWsModule } from './diagram-ws/diagram-ws.module';
       inject: [ConfigService],
     }),
     AuthModule,
-    DiagramWsModule,
+    DiagramModule,
+    WebsocketModule,
   ],
   controllers: [AppController],
   providers: [AppService],
