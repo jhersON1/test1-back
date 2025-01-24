@@ -8,9 +8,10 @@ async function bootstrap() {
   const configService = app.get<ConfigService>(ConfigService);
 
   app.enableCors({
-    origin: 'https://partial1.netlify.app', // Dominio del frontend
-    methods: 'GET,POST,PUT,DELETE,OPTIONS', // Métodos HTTP permitidos
-    credentials: true, // Si necesitas enviar cookies o cabeceras autorizadas
+    origin: ['https://partial1.netlify.app'],
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'], 
+    credentials: true,
+    allowedHeaders: ['Content-Type', 'Authorization'],
   });
   
   app.setGlobalPrefix('api');
